@@ -15,16 +15,29 @@ st.title("🤖 Your AI Chatbot")
 st.caption("Powered by Gemini")
 
 # 2. Verify API Key
-if not os.getenv("GEMINI_API_KEY") and not os.getenv("GOOGLE_API_KEY"):
-    st.error("Missing Gemini API Key. Please add `GEMINI_API_KEY` to your `.env` file.")
+api_key = (
+    os.getenv("GOOGLE_API_KEY")
+    or st.secrets.get("GOOGLE_API_KEY")
+)
+
+if not api_key:
+    st.error(
+        "Missing Gemini API Key. Add it to your `.env` file locally or under "
+        "App Settings -> Secrets on Streamlit Community Cloud."
+    )
     st.stop()
+
+# Ensure the key is exported to os.environ so ChatGoogleGenerativeAI can find it automatically
+os.environ.setdefault("GOOGLE_API_KEY", api_key)
 
 # 3. Model Initialization (cached so it does not reload on every user interaction)
 @st.cache_resource
 def load_model():
     return ChatGoogleGenerativeAI(
         model="gemini-3.6-flash",
-        temperature=0.3,
+        temperature=0.1,           # Low temperature: direct and factual
+        max_output_tokens=250,     # Enforces brevity
+        top_p=0.8,                 # Narrows vocabulary sampling
         streaming=True
     )
 
@@ -33,7 +46,7 @@ model = load_model()
 # 4. Initialize Persistent Chat History in Session State
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = [
-        SystemMessage(content="You are a helpful, direct, and concise AI assistant.")
+        SystemMessage(content="You are a direct, concise AI assistant. Provide strictly brief, to-the-point answers. Avoid filler, conversational pleasantries, and unnecessary elaboration unless explicitly asked.")
     ]
 
 # 5. Sidebar Controls (Clear Chat History)
