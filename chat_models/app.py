@@ -80,7 +80,13 @@ if user_prompt := st.chat_input("Type your message here..."):
     with st.chat_message("assistant"):
         def generate_response():
             for chunk in model.stream(st.session_state.chat_history):
-                yield chunk.content
+                # Yield text strings regardless of whether chunk.content is str or list
+                if isinstance(chunk.content, str):
+                    yield chunk.content
+                elif isinstance(chunk.content, list):
+                    for part in chunk.content:
+                        if isinstance(part, dict) and "text" in part:
+                            yield part["text"]
 
         # st.write_stream renders tokens chunk by chunk and captures the full string
         full_response = st.write_stream(generate_response())
